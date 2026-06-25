@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>岡田モデル Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">PPM</span>
+          <div>
+            <strong>岡田モデル</strong>
+            <small>PPM / DAO評価モデル</small>
+          </div>
+        </div>
+        <nav class="nav-list" aria-label="Main navigation">
+          <button class="nav-item active" data-target="project">概要入力</button>
+          <button class="nav-item" data-target="plan">PPM計画</button>
+          <button class="nav-item" data-target="team">チーム評価</button>
+          <button class="nav-item" data-target="meeting">会議AI分析</button>
+          <button class="nav-item" data-target="reward">総合価値レポート</button>
+        </nav>
+        <div class="sidebar-status">
+          <span>評価状態</span>
+          <strong id="statusLabel">未生成</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <h1>岡田モデル</h1>
+            <p>プロジェクト概要からPPMフェーズ、タスク、貢献度、報酬配分までを一気通貫で試せます。</p>
+          </div>
+          <div class="top-actions">
+            <button class="ghost-button" id="aiStatusBtn">AI接続確認</button>
+            <button class="ghost-button" id="sampleBtn">サンプル投入</button>
+            <button class="primary-button" id="generateBtn">AIでPPM計画を生成</button>
+          </div>
+        </header>
+
+        <section class="view active" id="project">
+          <div class="section-grid two">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Project Intake</h2>
+                <span>1</span>
+              </div>
+              <div class="form-grid">
+                <label>
+                  プロジェクト名
+                  <input id="projectName" value="地域DAOによる空き施設再生プロジェクト" />
+                </label>
+                <label>
+                  種別
+                  <select id="projectType">
+                    <option value="dao">DAO / コミュニティ</option>
+                    <option value="it">IT開発</option>
+                    <option value="infrastructure">建築・インフラ</option>
+                    <option value="ppp">PPP / 地域連携</option>
+                    <option value="education">教育</option>
+                  </select>
+                </label>
+                <label class="span-2">
+                  概要
+                  <textarea id="overview" rows="7">地域の空き施設をDAO型チームで再生し、学習、交流、創業支援の拠点として運営する。行政、地域住民、事業者、学生が参加し、初期計画、資金調達、改修、運営設計、広報、イベント実施までを共同で進める。</textarea>
+                </label>
+                <label>
+                  期間
+                  <select id="duration">
+                    <option value="12">12週間</option>
+                    <option value="16">16週間</option>
+                    <option value="24">24週間</option>
+                    <option value="36">36週間</option>
+                  </select>
+                </label>
+                <label>
+                  想定リスク
+                  <select id="riskLevel">
+                    <option value="medium">中</option>
+                    <option value="low">低</option>
+                    <option value="high">高</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>生成サマリー</h2>
+                <span>Live</span>
+              </div>
+              <div class="metric-grid">
+                <div class="metric">
+                  <small>フェーズ</small>
+                  <strong id="phaseCount">4</strong>
+                </div>
+                <div class="metric">
+                  <small>タスク</small>
+                  <strong id="taskCount">0</strong>
+                </div>
+                <div class="metric">
+                  <small>概算予算</small>
+                  <strong id="budgetTotal">未計算</strong>
+                </div>
+                <div class="metric">
+                  <small>報酬プール</small>
+                  <strong id="rewardPoolLabel">1,000,000円</strong>
+                </div>
+              </div>
+              <div class="note">
+                <strong>設計思想</strong>
+                <p>牧山式PPMの4つのPlanning Stepと8つのProject Team Parameterを、DAOの貢献証跡と報酬配分に接続します。</p>
+              </div>
+              <div class="note ai-note" id="aiNote">
+                <strong>AI接続</strong>
+                <p id="aiNoteText">ローカルルールで動作中。AIサーバーを `DYNAMIC_PPM_OPENAI_API_KEY` 付きで起動すると実AI分析に切り替わります。</p>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="plan">
+          <div class="section-grid">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>PPMフェーズとWBS</h2>
+                <span id="planBadge">Draft</span>
+              </div>
+              <div id="phaseList" class="phase-list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>ガントチャート</h2>
+                <span>Weeks</span>
+              </div>
+              <div id="gantt" class="gantt"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="team">
+          <div class="section-grid two">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>8パラメータ重み付け</h2>
+                <span>Total <b id="weightTotal">100</b></span>
+              </div>
+              <div id="weights" class="weights"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>メンバー貢献</h2>
+                <button class="small-button" id="addMemberBtn">追加</button>
+              </div>
+              <div id="members" class="member-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="meeting">
+          <div class="section-grid two">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>Meeting Intelligence</h2>
+                <span>Transcript</span>
+              </div>
+              <textarea id="transcript" rows="15">佐藤: 行政との合意形成が遅れると全体スケジュールに影響します。先に説明会を設定しましょう。
+田中: 改修費用の見積もりを3社から取り、予算リスクを見える化します。
+山本: WebサイトとSNSで参加者募集を始めます。地域住民向けのメッセージを分けたいです。
+佐藤: その案に賛成です。次回までにステークホルダーリストとRACIを更新します。
+田中: 契約と税務の論点も確認します。</textarea>
+              <button class="primary-button full" id="analyzeMeetingBtn">会議貢献を分析</button>
+            </section>
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>AI分析結果</h2>
+                <span id="meetingBadge">未分析</span>
+              </div>
+              <div id="meetingResults" class="analysis-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="reward">
+          <div class="section-grid">
+            <section class="panel">
+              <div class="panel-heading">
+                <h2>総合価値レポート</h2>
+                <div class="report-actions">
+                  <div class="inline-field">
+                    <label for="rewardPool">報酬プール</label>
+                    <input id="rewardPool" type="number" value="1000000" min="0" step="50000" />
+                  </div>
+                  <button class="small-button" id="copyReportBtn">コピー</button>
+                  <button class="small-button" id="downloadReportBtn">MD出力</button>
+                </div>
+              </div>
+              <div id="rewardReport" class="report"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
