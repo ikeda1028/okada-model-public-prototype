@@ -55,11 +55,31 @@ Open:
 http://127.0.0.1:4181/
 ```
 
+## Vercel AI Mode
+
+Vercelにデプロイすると、`api/` 配下のサーバーレス関数がOpenAI APIを呼びます。APIキーはブラウザへ出さず、Vercelの環境変数に保存します。
+
+1. Vercelで `ikeda1028/okada-model-public-prototype` をImport
+2. Framework Presetは `Other`
+3. Build Commandは空、Output Directoryも空のまま
+4. Environment Variablesに以下を追加
+
+```text
+DYNAMIC_PPM_OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+5. Deploy
+6. デプロイ後のURLで「AI接続確認」を押す
+
+本番URLを保護したい場合は、VercelのDeployment Protectionを有効化してください。公開テストの段階では、Vercel側の保護とアプリ内の合言葉ゲートを併用できます。
+
 ## Security
 
 - `.env` はGitHubへアップロードしないでください。
 - APIキーをフロントエンドのJavaScriptへ直接書かないでください。
 - 公開版では `.env.example` のみを含めます。
+- VercelではOpenAIキーをEnvironment Variablesにだけ保存してください。
 
 ## Suggested GitHub Pages Setup
 
@@ -76,5 +96,7 @@ http://127.0.0.1:4181/
 - `styles.css`: Layout and visual design
 - `app.js`: Prototype logic
 - `ai-server.mjs`: Optional local OpenAI proxy
+- `api/`: Vercel serverless API routes for OpenAI
+- `vercel.json`: Vercel function and noindex header settings
 - `.env.example`: Local AI setup template
 - `.gitignore`: Prevents `.env` from being committed

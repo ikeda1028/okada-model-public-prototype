@@ -206,10 +206,10 @@ async function checkAI() {
     state.aiEnabled = Boolean(data.openai);
     $("aiNoteText").textContent = data.openai
       ? `OpenAI APIに接続済み。モデル: ${data.model}。PPM計画と会議分析は実AIで生成されます。`
-      : "AIサーバーは起動していますが、DYNAMIC_PPM_OPENAI_API_KEYが未設定です。ローカルルールで動作します。";
+      : "AI APIは利用可能ですが、DYNAMIC_PPM_OPENAI_API_KEYが未設定です。ローカルルールで動作します。";
   } catch {
     state.aiEnabled = false;
-    $("aiNoteText").textContent = "AIサーバー未起動です。ローカルルールで動作します。";
+    $("aiNoteText").textContent = "AI APIに接続できません。ローカルルールで動作します。";
   }
 }
 
