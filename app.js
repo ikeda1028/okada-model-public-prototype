@@ -9,6 +9,9 @@ const ppmParameters = [
   ["decision", "Decision Making"],
 ];
 
+const ACCESS_CODE = "okada-test-2026";
+const ACCESS_STORAGE_KEY = "okada-model-public-access";
+
 const defaultWeights = {
   dao: [12, 10, 18, 8, 8, 14, 14, 16],
   it: [10, 22, 10, 12, 8, 10, 14, 14],
@@ -147,6 +150,34 @@ const yen = (value) => `${Math.round(value).toLocaleString("ja-JP")}円`;
 
 function $(id) {
   return document.getElementById(id);
+}
+
+function unlockAccess() {
+  sessionStorage.setItem(ACCESS_STORAGE_KEY, "ok");
+  document.body.classList.remove("access-locked");
+}
+
+function setupAccessGate() {
+  const saved = sessionStorage.getItem(ACCESS_STORAGE_KEY) === "ok";
+  const hashCode = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+  const queryCode = new URLSearchParams(window.location.search).get("access") || "";
+  if (saved || hashCode === ACCESS_CODE || queryCode === ACCESS_CODE) {
+    unlockAccess();
+    return;
+  }
+
+  $("accessForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = $("accessCodeInput");
+    const value = input.value.trim();
+    if (value === ACCESS_CODE) {
+      unlockAccess();
+      input.value = "";
+      return;
+    }
+    $("accessError").textContent = "合言葉が違います。共有された文字列を確認してください。";
+    input.select();
+  });
 }
 
 function setView(target) {
@@ -764,6 +795,7 @@ function loadSample() {
 }
 
 function boot() {
+  setupAccessGate();
   loadWeights();
   renderWeights();
   renderMembers();
