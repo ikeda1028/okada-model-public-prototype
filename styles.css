@@ -442,8 +442,8 @@ textarea:focus {
 
 .gantt-row {
   display: grid;
-  grid-template-columns: 210px repeat(12, 48px);
-  min-width: 786px;
+  grid-template-columns: 210px repeat(var(--gantt-periods, 12), 48px);
+  min-width: max-content;
   border-bottom: 1px solid var(--line);
   align-items: center;
 }

@@ -364,18 +364,29 @@ function renderPhaseList() {
 }
 
 function renderGantt() {
-  const weeks = Array.from({ length: 12 }, (_, index) => index + 1);
+  const duration = Number($("duration").value);
+  const isMonthly = duration > 36;
+  const periodLength = isMonthly ? 4.33 : 1;
+  const periodCount = isMonthly ? Math.ceil(duration / periodLength) : duration;
+  const periods = Array.from({ length: periodCount }, (_, index) => ({
+    index: index + 1,
+    start: Math.floor(index * periodLength) + 1,
+    end: Math.ceil((index + 1) * periodLength),
+    label: isMonthly ? `M${index + 1}` : `W${index + 1}`,
+  }));
+  $("gantt").style.setProperty("--gantt-periods", periods.length);
   const header = `
     <div class="gantt-row">
       <div class="gantt-label">Task</div>
-      ${weeks.map((week) => `<div class="gantt-cell">W${week}</div>`).join("")}
+      ${periods.map((period) => `<div class="gantt-cell">${period.label}</div>`).join("")}
     </div>
   `;
   const rows = state.tasks
     .map((task, index) => {
-      const cells = weeks
-        .map((week) => {
-          const active = week >= task.start && week < task.start + task.length;
+      const taskEnd = task.start + task.length - 1;
+      const cells = periods
+        .map((period) => {
+          const active = task.start <= period.end && taskEnd >= period.start;
           const klass = index % 3 === 1 ? "alt" : index % 3 === 2 ? "blue" : "";
           return `<div class="gantt-cell">${active ? `<div class="bar ${klass}"></div>` : ""}</div>`;
         })
