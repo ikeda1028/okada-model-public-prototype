@@ -140,9 +140,9 @@ let state = {
   weights: {},
   aiEnabled: false,
   members: [
-    { id: 1, name: "佐藤", role: "合意形成 / PM", primary: "stakeholders", base: 24, meeting: 0 },
-    { id: 2, name: "田中", role: "財務 / 法務", primary: "finance", base: 20, meeting: 0 },
-    { id: 3, name: "山本", role: "広報 / コミュニティ", primary: "marketing", base: 18, meeting: 0 },
+    { id: 1, name: "佐藤", role: "合意形成 / PM", primary: "stakeholders", base: 24, meeting: 0, joinWeek: 1, leaveWeek: 0 },
+    { id: 2, name: "田中", role: "財務 / 法務", primary: "finance", base: 20, meeting: 0, joinWeek: 1, leaveWeek: 0 },
+    { id: 3, name: "山本", role: "広報 / コミュニティ", primary: "marketing", base: 18, meeting: 0, joinWeek: 1, leaveWeek: 0 },
   ],
 };
 
@@ -187,6 +187,31 @@ function setView(target) {
 
 function getProjectType() {
   return $("projectType").value;
+}
+
+function durationWeeks() {
+  return Number($("duration").value || 12);
+}
+
+function memberLeaveWeek(member) {
+  const duration = durationWeeks();
+  const leaveWeek = Number(member.leaveWeek || 0);
+  return leaveWeek > 0 ? Math.min(duration, leaveWeek) : duration;
+}
+
+function memberParticipation(member) {
+  const duration = durationWeeks();
+  const joinWeek = Math.min(duration, Math.max(1, Number(member.joinWeek || 1)));
+  const leaveWeek = Math.max(joinWeek, memberLeaveWeek(member));
+  const activeWeeks = Math.max(1, leaveWeek - joinWeek + 1);
+  const factor = activeWeeks / duration;
+  return { joinWeek, leaveWeek, activeWeeks, factor };
+}
+
+function participationLabel(member) {
+  const participation = memberParticipation(member);
+  const end = Number(member.leaveWeek || 0) > 0 ? `W${participation.leaveWeek}` : "終了まで";
+  return `W${participation.joinWeek} - ${end} / ${Math.round(participation.factor * 100)}%`;
 }
 
 function normalizeWeights(weights) {
@@ -417,7 +442,44 @@ function renderWeights() {
   $("weightTotal").textContent = total;
 }
 
+function renderMemberEditor() {
+  const duration = durationWeeks();
+  $("memberEditor").innerHTML = state.members
+    .map(
+      (member) => `
+        <article class="member-edit-row" data-member-id="${member.id}">
+          <label>
+            名前
+            <input value="${member.name}" data-member-field="name" />
+          </label>
+          <label>
+            役割
+            <input value="${member.role}" data-member-field="role" />
+          </label>
+          <label>
+            主担当
+            <select data-member-field="primary">
+              ${ppmParameters
+                .map(([key, label]) => `<option value="${key}" ${member.primary === key ? "selected" : ""}>${label}</option>`)
+                .join("")}
+            </select>
+          </label>
+          <label>
+            参加週
+            <input type="number" min="1" max="${duration}" value="${member.joinWeek || 1}" data-member-field="joinWeek" />
+          </label>
+          <label>
+            離脱週
+            <input type="number" min="0" max="${duration}" value="${member.leaveWeek || 0}" data-member-field="leaveWeek" />
+          </label>
+        </article>
+      `
+    )
+    .join("");
+}
+
 function renderMembers() {
+  renderMemberEditor();
   $("members").innerHTML = state.members
     .map((member) => {
       const score = memberScore(member);
@@ -430,6 +492,7 @@ function renderMembers() {
             </div>
             <span class="pill">${labelForParameter(member.primary)}</span>
           </div>
+          <p>参加期間: ${participationLabel(member)}</p>
           <div class="score-line">
             <div class="meter"><span style="width:${Math.min(score, 100)}%"></span></div>
             <strong>${score}</strong>
@@ -442,12 +505,14 @@ function renderMembers() {
 
 function memberScore(member) {
   const ownedTasks = state.tasks.filter((task) => task.owner === member.name);
+  const participation = memberParticipation(member);
   const taskScore = ownedTasks.reduce((sum, task) => {
     const statusBonus = task.status === "accepted" ? 1.25 : 0.75;
     return sum + task.hours * task.impact * statusBonus * ((state.weights[task.parameter] || 10) / 10);
   }, 0);
   const parameterFit = state.weights[member.primary] || 10;
-  return Math.round(member.base + member.meeting + taskScore / 24 + parameterFit / 2);
+  const participationBonus = 0.55 + participation.factor * 0.45;
+  return Math.round(member.base * participationBonus + member.meeting * participationBonus + taskScore / 24 + parameterFit / 2);
 }
 
 function clampScore(value) {
@@ -465,13 +530,15 @@ function memberValueProfile(member) {
   const primaryWeight = state.weights[member.primary] || 10;
   const roleModel = roleValueModel[member.primary];
   const meeting = member.meeting || 0;
+  const participation = memberParticipation(member);
+  const participationBonus = 0.55 + participation.factor * 0.45;
 
-  const money = clampScore(member.base + weightedTaskValue / 5 + meeting * 0.35 + roleModel.money + completedTasks.length * 4);
-  const human = clampScore(member.base + primaryWeight * 0.9 + meeting * 0.25 + roleModel.human + ownedTasks.length * 3);
-  const organization = clampScore(member.base + taskImpact * 3 + meeting * 0.3 + roleModel.org + primaryWeight * 0.8);
+  const money = clampScore(member.base * participationBonus + weightedTaskValue / 5 + meeting * 0.35 + roleModel.money + completedTasks.length * 4);
+  const human = clampScore(member.base * participationBonus + primaryWeight * 0.9 + meeting * 0.25 + roleModel.human + ownedTasks.length * 3);
+  const organization = clampScore(member.base * participationBonus + taskImpact * 3 + meeting * 0.3 + roleModel.org + primaryWeight * 0.8);
   const total = clampScore(money * 0.4 + human * 0.3 + organization * 0.3);
 
-  return { money, human, organization, total, roleModel, ownedTasks, completedTasks };
+  return { money, human, organization, total, roleModel, ownedTasks, completedTasks, participation };
 }
 
 function roleGainForMember(member, parameterKey) {
@@ -617,6 +684,7 @@ function renderRewardReport() {
         <tr>
           <td>${item.member.name}</td>
           <td>${item.member.role}</td>
+          <td>${participationLabel(item.member)}</td>
           <td>${item.profile.money}</td>
           <td>${item.profile.human}</td>
           <td>${item.profile.organization}</td>
@@ -687,7 +755,7 @@ function renderRewardReport() {
     </div>
     <table class="reward-table">
       <thead>
-        <tr><th>メンバー</th><th>主な役割</th><th>金銭</th><th>人的資本</th><th>組織影響</th><th>配分率</th><th>報酬案</th></tr>
+        <tr><th>メンバー</th><th>主な役割</th><th>参加期間</th><th>金銭</th><th>人的資本</th><th>組織影響</th><th>配分率</th><th>報酬案</th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -735,11 +803,11 @@ function buildReportMarkdown() {
     ``,
     `## 総合評価`,
     ``,
-    `| メンバー | 主な役割 | 金銭的貢献 | 人的資本価値 | 組織影響 | 配分率 | 報酬案 |`,
-    `|---|---|---:|---:|---:|---:|---:|`,
+    `| メンバー | 主な役割 | 参加期間 | 金銭的貢献 | 人的資本価値 | 組織影響 | 配分率 | 報酬案 |`,
+    `|---|---|---|---:|---:|---:|---:|---:|`,
     ...profiles.map(({ member, profile }) => {
       const percentage = (profile.total / total) * 100;
-      return `| ${member.name} | ${member.role} | ${profile.money} | ${profile.human} | ${profile.organization} | ${percentage.toFixed(1)}% | ${yen(pool * (percentage / 100))} |`;
+      return `| ${member.name} | ${member.role} | ${participationLabel(member)} | ${profile.money} | ${profile.human} | ${profile.organization} | ${percentage.toFixed(1)}% | ${yen(pool * (percentage / 100))} |`;
     }),
     ``,
     `## 役割別 上昇シミュレーション`,
@@ -782,6 +850,7 @@ function addMember() {
   const names = ["高橋", "伊藤", "中村", "小林", "加藤"];
   const next = state.members.length + 1;
   const primary = ppmParameters[next % ppmParameters.length][0];
+  const joinWeek = next > 4 ? Math.max(1, Math.round(durationWeeks() * 0.35)) : 1;
   state.members.push({
     id: next,
     name: names[(next - 4) % names.length] || `Member ${next}`,
@@ -789,8 +858,32 @@ function addMember() {
     primary,
     base: 16,
     meeting: 0,
+    joinWeek,
+    leaveWeek: 0,
   });
   generateLocalPlan();
+}
+
+function updateMember(event) {
+  const field = event.target.dataset.memberField;
+  if (!field) return;
+  const row = event.target.closest("[data-member-id]");
+  const member = state.members.find((item) => item.id === Number(row?.dataset.memberId));
+  if (!member) return;
+
+  const previousName = member.name;
+  const value = ["joinWeek", "leaveWeek"].includes(field) ? Number(event.target.value || 0) : event.target.value.trim();
+  member[field] = value;
+  if (field === "name" && value) {
+    state.tasks = state.tasks.map((task) => (task.owner === previousName ? { ...task, owner: value } : task));
+  }
+  if (field === "joinWeek") member.joinWeek = Math.max(1, Math.min(durationWeeks(), Number(value || 1)));
+  if (field === "leaveWeek") member.leaveWeek = Math.max(0, Math.min(durationWeeks(), Number(value || 0)));
+  if (member.leaveWeek > 0 && member.leaveWeek < member.joinWeek) member.leaveWeek = member.joinWeek;
+
+  renderPhaseList();
+  renderGantt();
+  updateScores();
 }
 
 function loadSample() {
@@ -844,6 +937,7 @@ function boot() {
     updateScores();
   });
   $("addMemberBtn").addEventListener("click", addMember);
+  $("memberEditor").addEventListener("change", updateMember);
   $("analyzeMeetingBtn").addEventListener("click", async () => {
     $("meetingBadge").textContent = "分析中";
     await analyzeMeeting();

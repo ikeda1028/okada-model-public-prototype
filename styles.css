@@ -486,6 +486,29 @@ textarea:focus {
   gap: 12px;
 }
 
+.member-editor {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.member-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr 86px 86px;
+  gap: 10px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.member-edit-row input,
+.member-edit-row select {
+  min-height: 36px;
+  padding: 8px 9px;
+}
+
 .weight-row {
   display: grid;
   grid-template-columns: 150px minmax(0, 1fr) 44px;
@@ -703,6 +726,10 @@ textarea:focus {
   }
 
   .weight-row {
+    grid-template-columns: 1fr;
+  }
+
+  .member-edit-row {
     grid-template-columns: 1fr;
   }
 }
