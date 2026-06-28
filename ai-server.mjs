@@ -10,7 +10,7 @@ const port = Number(process.env.PORT || 4181);
 loadDotEnv(join(root, ".env"));
 
 const apiKey = process.env.DYNAMIC_PPM_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const model = process.env.OPENAI_MODEL || "gpt-5.5";
 const hasUsableApiKey = Boolean(apiKey && apiKey !== "sk-your-key-here" && apiKey.startsWith("sk-"));
 
 const mimeTypes = {

@@ -1,5 +1,5 @@
 const apiKey = process.env.DYNAMIC_PPM_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-export const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+export const model = process.env.OPENAI_MODEL || "gpt-5.5";
 export const hasUsableApiKey = Boolean(apiKey && apiKey !== "sk-your-key-here" && apiKey.startsWith("sk-"));
 
 export const ppmPlanSchema = {
